@@ -40,9 +40,9 @@ app.post("/login", async(req, res)=>{
     try{
         const {emailId, password} = req.body;
 
-        const userData = await User.findOne({emailId : emailId}) // FIND USER EXIST IN DB OR NOT
+        const user = await User.findOne({emailId : emailId}) // FIND USER EXIST IN DB OR NOT
 
-        if(!userData){
+        if(!user){
             res.status(400).send({
                 data: [],
                 error: {
@@ -51,12 +51,14 @@ app.post("/login", async(req, res)=>{
                 }
             });
         } else {
-            const passwordMatch = await bcrypt.compare(password, userData.password) // COMPARE PASSWORD FROM REQUEST PASSWORD AND DB PASSWORD
+            // const passwordMatch = await bcrypt.compare(password, user.password) // COMPARE PASSWORD FROM REQUEST PASSWORD AND DB PASSWORD
+            const passwordMatch = await user.validatePassword(password)
 
             if(passwordMatch) {
-                const token = await jwt.sign({_id: userData._id}, "Dev@secret#Key"); // CREATE JWT TOKEN
+                //const token = await jwt.sign({_id: user._id}, "Dev@secret#Key", {expiresIn: "7d"}); // CREATE JWT TOKEN AND WILL EXPIRE IN 7 DAYS
+                const token = await user.jwtAuth();
 
-                res.cookie("token", token) // SET COOKIE
+                res.cookie("token", token, {expires: new Date(Date.now() + 10000)}) // SET COOKIE and EXPIRY DATE IS 10 MINS
 
                 res.status(200).send({
                     data: "User logged in successfully.",
