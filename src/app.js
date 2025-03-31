@@ -5,7 +5,8 @@ const app = express();
 const {validateSignupData} = require("./utils/validation")
 const bcrypt = require("bcrypt")
 const cookieParser = require("cookie-parser");
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
+const {userAuth} = require("./middlewares/auth")
 
 app.use(express.json()); // Express middleware. Without this we can't get data in "req.body"
 app.use(cookieParser()); // Express middleware to get cookies from cookie-parser
@@ -24,36 +25,8 @@ app.get("/searchUserByEmail", async(req, res)=>{
     }
 })
 
-app.get("/feed", async(req, res)=>{
+app.get("/feed", userAuth, async(req, res)=>{
     try{
-        const cookies = req.cookies; // GET COOKIES
-        const {token} = cookies; // EXTRACT TOKEN
-        
-        if(!token) {
-            throw new Error(JSON.stringify({
-                data: [],
-                error: {
-                    errorCode: "Login-03",
-                    errorMessage: "Session expired. Please login again."
-                }
-            }));
-        }
-
-        const isValidToken = await jwt.verify(token, "Dev@secret#Key"); // VERIFY JWT TOKEN
-        
-        const {_id} = isValidToken; // GET ID FROM JWT TOKEN
-        const user = await User.findOne({_id}) // FIND USER EXIST IN DB OR NOT
-
-        if(!user) {
-            throw new Error(JSON.stringify({
-                data: [],
-                error: {
-                    errorCode: "Login-01",
-                    errorMessage: "Session expired. Please login again."
-                }
-            }));
-        }
-
         const userData = await User.find({}) // GET USER LIST FROM DB
 
         res.send(userData);
@@ -89,7 +62,7 @@ app.post("/login", async(req, res)=>{
                     data: "User logged in successfully.",
                     error: {}
                 });
-                
+
             } else {                
                 res.status(400).send({
                     data: [],
